@@ -32,10 +32,9 @@ app.get('/api/get-user-passes', async (req, res) => {
         });
 
     } catch (error) {
-                console.error(error);
-                // This will show us the exact error message in Roblox/browser
-                return res.json({ success: false, error: error.message || "Server error" });
-            }
+        console.error(error);
+        // This will show us the exact error message in Roblox/browser
+        return res.json({ success: false, error: error.message || "Server error" });
     }
 });
 
