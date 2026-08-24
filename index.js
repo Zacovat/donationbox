@@ -17,7 +17,7 @@ app.get('/api/get-user-passes', async (req, res) => {
         }
         const userId = userRes.data.data[0].id;
 
-        const gamesRes = await axios.get(`https://games.roproxy.com/v2/users/${userId}/games?accessFilter=Public&limit=1`);
+        const gamesRes = await axios.get(`https://games.roproxy.com/v2/users/${userId}/games?accessFilter=2&limit=1`);
         if (!gamesRes.data.data || gamesRes.data.data.length === 0) {
             return res.json({ success: false, error: "No public games" });
         }
