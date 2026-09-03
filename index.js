@@ -1,45 +1,43 @@
-const express = require('express');
-const axios = require('axios');
+/*
+  registration-backend-example.js
+
+  Replaces the Open Cloud inventory check entirely. Connectors register
+  themselves here on startup (plain HTTP, no Roblox credential involved);
+  the hub asks here instead of asking Roblox.
+
+  Registrations go stale after 24h with no re-registration, so a place
+  that stops running servers naturally falls out of "installed" without
+  needing an explicit unregister step -- every live server re-registers on
+  its own boot, so an active place stays fresh automatically.
+
+  In-memory storage -- swap for a real database before relying on this
+  long-term, a restart currently forgets every registration (which just
+  means a brief gap until connector servers next boot and re-register,
+  not data loss that matters).
+*/
+
+const express = require("express");
 const app = express();
+app.use(express.json());
 
-app.get('/api/get-user-passes', async (req, res) => {
-    const username = req.query.username;
-    if (!username) return res.json({ success: false });
+const STALE_MS = 24 * 60 * 60 * 1000; // 24 hours
+const registered = new Map(); // universeId -> { registeredAt }
 
-    try {
-        const userRes = await axios.post('https://users.roproxy.com/v1/usernames/users', {
-            usernames: [username],
-            excludeBannedUsers: true
-        });
-
-        if (!userRes.data.data || userRes.data.data.length === 0) {
-            return res.json({ success: false, error: "User not found" });
-        }
-        const userId = userRes.data.data[0].id;
-
-        const gamesRes = await axios.get(`https://games.roproxy.com/v2/users/${userId}/games?accessFilter=2&limit=10`);
-        if (!gamesRes.data.data || gamesRes.data.data.length === 0) {
-            return res.json({ success: false, error: "No public games" });
-        }
-        const universeId = gamesRes.data.data[0].id;
-
-        const detailsRes = await axios.get(`https://games.roproxy.com/v1/games?universeIds=${universeId}`);
-        const rootPlaceId = detailsRes.data.data[0].rootPlaceId;
-
-        return res.json({
-            success: true,
-            placeId: rootPlaceId
-        });
-
-    } catch (error) {
-        console.error("API Error Details:", error.response?.data || error.message);
-        return res.json({ 
-            success: false, 
-            error: error.response?.data ? JSON.stringify(error.response.data) : error.message 
-        });
-    }
+app.post("/api/register", (req, res) => {
+	const { universeId } = req.body || {};
+	if (!universeId) {
+		return res.status(400).json({ ok: false });
+	}
+	registered.set(String(universeId), { registeredAt: Date.now() });
+	return res.json({ ok: true });
 });
 
-// Use the port assigned by the hosting container or fallback to 3000
+app.get("/api/check", (req, res) => {
+	const { universeId } = req.query;
+	const record = registered.get(String(universeId));
+	const installed = Boolean(record) && Date.now() - record.registeredAt < STALE_MS;
+	return res.json({ installed });
+});
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`Listening on ${PORT}`));
