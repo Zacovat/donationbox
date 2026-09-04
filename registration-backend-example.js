@@ -25,17 +25,22 @@ const registered = new Map(); // universeId -> { registeredAt }
 
 app.post("/api/register", (req, res) => {
 	const { universeId } = req.body || {};
+	console.log(`[register] received universeId=${universeId} (type: ${typeof universeId})`);
 	if (!universeId) {
+		console.log("[register] rejected: no universeId in body");
 		return res.status(400).json({ ok: false });
 	}
 	registered.set(String(universeId), { registeredAt: Date.now() });
+	console.log(`[register] stored key="${String(universeId)}". All registered keys: [${[...registered.keys()].join(", ")}]`);
 	return res.json({ ok: true });
 });
 
 app.get("/api/check", (req, res) => {
 	const { universeId } = req.query;
+	console.log(`[check] received universeId=${universeId} (type: ${typeof universeId})`);
 	const record = registered.get(String(universeId));
 	const installed = Boolean(record) && Date.now() - record.registeredAt < STALE_MS;
+	console.log(`[check] looked up key="${String(universeId)}" found=${Boolean(record)} installed=${installed}. All registered keys: [${[...registered.keys()].join(", ")}]`);
 	return res.json({ installed });
 });
 
