@@ -1,0 +1,11 @@
+{
+  "name": "roblox-registration-backend",
+  "version": "1.0.0",
+  "main": "registration-backend-example.js",
+  "scripts": {
+    "start": "node registration-backend-example.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
